@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L&D FEI Idea Incubator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!--
+╔══════════════════════════════════════════════════════════════════╗
+║  SHAREPOINT SETUP — READ THIS FIRST                              ║
+╠══════════════════════════════════════════════════════════════════╣
+║  1. Create a Microsoft List on your SharePoint site              ║
+║     Name it exactly: FEI_Ideas                                   ║
+║                                                                  ║
+║  Add these columns (exact names matter):                         ║
+║    Title          → Single line of text  (already exists)        ║
+║    Brand          → Choice (Elmer's, Sharpie, Paper Mate,        ║
+║                      EXPO, Dymo, NUK, Graco, Parker,             ║
+║                      Cross-brand, Other)                         ║
+║    Signal         → Multiple lines of text                       ║
+║    TrendTag       → Single line of text                          ║
+║    Desirability   → Choice (Low, Medium, High)                   ║
+║    Feasibility    → Choice (Low, Medium, High)                   ║
+║    Viability      → Choice (Low, Medium, High)                   ║
+║    DFVNotes       → Multiple lines of text                       ║
+║    Submitter      → Single line of text                          ║
+║    IdeaStatus     → Choice (Active, On hold, Advanced to IGM)    ║
+║                                                                  ║
+║  2. Set your SharePoint site URL below (line ~90):               ║
+║     const SITE_URL = "https://newellco.sharepoint.com/sites/...";║
+║                                                                  ║
+║  3. Host this HTML file on SharePoint as an Embed web part or    ║
+║     upload to Site Assets and embed via iframe / SPFX webpart.   ║
+║                                                                  ║
+║  Authentication: Uses the logged-in user's SharePoint session    ║
+║  automatically — no API keys or tokens needed.                   ║
+╚══════════════════════════════════════════════════════════════════╝
+-->
+
+<style>
+:root{--navy:#1B2D5B;--teal:#0D8C8C;--mint:#02B0A3;--mint-dim:rgba(2,176,163,0.11);--white:#FFFFFF;--off:#F7F9FB;--slate:#3D4F6B;--muted:#7A8CA0;--border:rgba(0,0,0,0.08);--green:#1D9E75;--amber:#EF9F27;--red:#E24B4A;--blue:#378ADD;--r:10px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--off);color:var(--slate);min-height:100vh;font-size:14px}
+.shell{display:flex;min-height:100vh}
+.sidebar{width:220px;flex-shrink:0;background:var(--navy);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:10}
+.sb-logo{padding:26px 20px 18px;border-bottom:1px solid rgba(255,255,255,0.08)}
+.sb-eye{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--mint);margin-bottom:6px}
+.sb-logo h1{font-size:17px;font-weight:500;color:#fff;line-height:1.25}
+.sb-logo h1 span{color:var(--mint)}
+.sb-nav{padding:14px 0;flex:1}
+.ni{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;color:rgba(255,255,255,0.5);font-size:13px;transition:all .12s;border-left:3px solid transparent;user-select:none}
+.ni:hover{color:rgba(255,255,255,0.85);background:rgba(255,255,255,0.04)}
+.ni.active{color:#fff;border-left-color:var(--mint);background:rgba(2,176,163,0.10)}
+.ni-icon{width:14px;text-align:center;font-size:13px}
+.ni-badge{margin-left:auto;background:var(--mint);color:var(--navy);font-size:10px;font-weight:500;padding:1px 7px;border-radius:999px;font-family:'DM Mono',monospace}
+.sb-foot{padding:14px 20px;border-top:1px solid rgba(255,255,255,0.08);font-size:11px;color:rgba(255,255,255,0.28);line-height:1.6}
+.main{margin-left:220px;flex:1;padding:32px 36px;max-width:920px}
+.view{display:none;animation:fi .18s ease}
+.view.active{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+.ph{margin-bottom:24px}
+.ph h2{font-size:21px;font-weight:500;color:var(--navy);margin-bottom:4px}
+.ph p{font-size:13px;color:var(--muted);line-height:1.6;max-width:620px}
+.hero{background:var(--navy);border-radius:var(--r);padding:28px 32px;color:#fff;margin-bottom:18px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-50px;right:-50px;width:280px;height:280px;background:radial-gradient(circle,rgba(2,176,163,0.15) 0%,transparent 70%);pointer-events:none}
+.hero-eye{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--mint);margin-bottom:10px}
+.hero h2{font-size:27px;font-weight:300;color:#fff;margin-bottom:8px}
+.hero h2 strong{font-weight:500}
+.hero p{font-size:13px;color:rgba(255,255,255,0.58);line-height:1.7;max-width:500px;margin-bottom:18px}
+.chips{display:flex;gap:7px;flex-wrap:wrap}
+.chip{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.18);padding:3px 11px;border-radius:999px;font-size:11px;color:rgba(255,255,255,0.78)}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.sc{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px}
+.sc .n{font-family:'DM Mono',monospace;font-size:26px;font-weight:500;color:var(--navy);line-height:1;margin-bottom:3px}
+.sc .l{font-size:11px;color:var(--muted)}
+.meta-line{font-size:11px;color:var(--muted)}
+.meta-line span{margin-right:14px}
+.step-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:11px}
+.scard{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px}
+.snum{width:28px;height:28px;border-radius:50%;background:var(--mint-dim);color:var(--teal);font-family:'DM Mono',monospace;font-size:12px;font-weight:500;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.scard h3{font-size:13px;font-weight:500;color:var(--navy);margin-bottom:5px}
+.scard p{font-size:12px;color:var(--muted);line-height:1.65}
+.goal-box{margin-top:18px;background:var(--mint-dim);border:1px solid rgba(2,176,163,0.18);border-radius:var(--r);padding:14px 18px}
+.goal-box h4{font-size:10px;font-weight:500;color:var(--teal);letter-spacing:.5px;text-transform:uppercase;margin-bottom:7px;font-family:'DM Mono',monospace}
+.goal-box li{font-size:12px;color:var(--slate);padding:2px 0;line-height:1.55;list-style:none}
+.goal-box li::before{content:'→ ';color:var(--mint);font-weight:500}
+.filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
+.fl{font-size:11px;color:var(--muted);margin-right:3px;font-weight:500;white-space:nowrap}
+.fb{font-size:11px;padding:4px 11px;border-radius:999px;border:1px solid var(--border);background:var(--white);color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .1s}
+.fb:hover{border-color:var(--mint);color:var(--teal)}
+.fb.on{background:var(--mint);border-color:var(--mint);color:#fff;font-weight:500}
+.idea-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);margin-bottom:12px;overflow:hidden}
+.ic-head{display:grid;grid-template-columns:1fr auto;gap:12px;padding:16px 20px 14px;align-items:start;cursor:pointer;user-select:none}
+.ic-title{font-size:14px;font-weight:500;color:var(--navy);margin-bottom:5px;line-height:1.35}
+.ic-meta{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.brand-tag{font-size:10px;padding:2px 9px;border-radius:999px;background:#EEF4FF;color:#185FA5;border:1px solid rgba(24,95,165,0.15);font-family:'DM Mono',monospace;font-weight:500}
+.trend-tag{font-size:10px;padding:2px 9px;border-radius:999px;background:var(--mint-dim);color:var(--teal);border:1px solid rgba(2,176,163,0.18)}
+.status-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;white-space:nowrap}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot.active{background:var(--green)}.dot.hold{background:var(--amber)}.dot.igm{background:var(--blue)}
+.ic-right{display:flex;flex-direction:column;align-items:flex-end;gap:7px;padding-top:2px}
+.exp-btn{font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;padding:0;white-space:nowrap}
+.ic-body{display:none;border-top:1px solid var(--border);padding:0 20px 18px}
+.ic-body.open{display:block}
+.signal-text{font-size:12px;color:var(--slate);line-height:1.7;padding:14px 0 16px;border-bottom:1px solid var(--border)}
+.submitter-line{font-size:11px;color:var(--muted);margin-top:8px;font-style:italic}
+.dfv-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.dfv-card{border-radius:8px;padding:12px 14px;border:1px solid var(--border)}
+.dfv-card.des{background:#F0FAF6;border-color:rgba(29,158,117,0.2)}
+.dfv-card.fea{background:#EEF4FF;border-color:rgba(24,95,165,0.18)}
+.dfv-card.via{background:#FFFBEF;border-color:rgba(239,159,39,0.22)}
+.dfv-lbl{font-size:9px;font-weight:500;letter-spacing:1px;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:6px}
+.dfv-card.des .dfv-lbl{color:var(--green)}.dfv-card.fea .dfv-lbl{color:#185FA5}.dfv-card.via .dfv-lbl{color:#BA7517}
+.dfv-score{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.sdots{display:flex;gap:3px}
+.sdot{width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,0.1)}
+.sdot.d{background:var(--green)}.sdot.f{background:var(--blue)}.sdot.v{background:var(--amber)}
+.dfv-slbl{font-size:11px;font-weight:500}
+.dfv-card.des .dfv-slbl{color:var(--green)}.dfv-card.fea .dfv-slbl{color:#185FA5}.dfv-card.via .dfv-slbl{color:#BA7517}
+.dfv-note{font-size:11px;color:var(--muted);line-height:1.55}
+.theme-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.tcard{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;border-left:3px solid var(--mint)}
+.tcat{font-size:9px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:5px;font-family:'DM Mono',monospace}
+.tcard h3{font-size:13px;font-weight:500;color:var(--navy);margin-bottom:7px}
+.tcard p{font-size:12px;color:var(--muted);line-height:1.65}
+.sp-banner{border-radius:var(--r);padding:12px 16px;margin-bottom:18px;font-size:12px;line-height:1.6;display:flex;align-items:flex-start;gap:10px}
+.sp-banner.info{background:#EEF4FF;border:1px solid rgba(24,95,165,0.15);color:#185FA5}
+.sp-banner.warn{background:#FFFBEF;border:1px solid rgba(239,159,39,0.22);color:#7A5C00}
+.sp-banner.ok{background:#F0FAF6;border:1px solid rgba(29,158,117,0.2);color:#0F6E56}
+.sp-banner.err{background:#FEF2F2;border:1px solid rgba(226,75,74,0.2);color:#991B1B}
+.sp-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.form-wrap{max-width:540px}
+.fc{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:24px 26px}
+.field{margin-bottom:15px}
+.field label{display:block;font-size:10px;font-weight:500;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:5px;font-family:'DM Mono',monospace}
+.field input,.field textarea,.field select{width:100%;border:1px solid var(--border);border-radius:6px;padding:8px 11px;font-size:13px;background:var(--off);color:var(--slate);font-family:'DM Sans',sans-serif;outline:none;transition:border-color .13s}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--mint);background:var(--white)}
+.field textarea{resize:vertical;min-height:68px;line-height:1.55}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.dfv-sub-head{font-size:10px;font-weight:500;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:8px}
+.dfv-form-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:15px}
+.dfv-field label{display:block;font-size:10px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;margin-bottom:5px;font-family:'DM Mono',monospace}
+.dfv-field.des label{color:var(--green)}.dfv-field.fea label{color:#185FA5}.dfv-field.via label{color:#BA7517}
+.dfv-field select{width:100%;border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:12px;background:var(--off);color:var(--slate);font-family:'DM Sans',sans-serif;outline:none}
+.submit-btn{background:var(--navy);color:#fff;border:none;padding:10px 22px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .13s;display:flex;align-items:center;gap:8px}
+.submit-btn:hover{background:var(--teal)}
+.submit-btn:disabled{opacity:.5;cursor:not-allowed}
+.spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{display:none;margin-top:12px;background:var(--mint-dim);border:1px solid rgba(2,176,163,0.22);border-radius:6px;padding:11px 14px;font-size:12px;color:var(--teal)}
+.toast.err{background:#FEF2F2;border-color:rgba(226,75,74,0.2);color:#991B1B}
+.loading-overlay{display:flex;align-items:center;gap:10px;padding:32px 0;font-size:13px;color:var(--muted)}
+.load-spin{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--mint);border-radius:50%;animation:spin .7s linear infinite}
+.empty{padding:36px;text-align:center;font-size:13px;color:var(--muted)}
+.setup-box{background:var(--white);border:2px dashed rgba(239,159,39,0.4);border-radius:var(--r);padding:24px 28px;margin-bottom:20px}
+.setup-box h3{font-size:15px;font-weight:500;color:var(--navy);margin-bottom:12px}
+.setup-box ol{padding-left:18px}
+.setup-box li{font-size:13px;color:var(--slate);line-height:1.8;margin-bottom:4px}
+.setup-box code{font-family:'DM Mono',monospace;font-size:11px;background:var(--off);padding:2px 6px;border-radius:4px;color:var(--navy);border:1px solid var(--border)}
+@media(max-width:680px){.sidebar{width:180px}.main{margin-left:180px;padding:20px 16px}.stat-grid,.step-grid,.theme-grid,.dfv-row,.field-row,.dfv-form-row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-eye">L&D · FEI</div>
+    <h1>Idea<br><span>Incubator</span></h1>
+  </div>
+  <nav class="sb-nav">
+    <div class="ni active" onclick="show('cover',this)"><span class="ni-icon">◈</span> Overview</div>
+    <div class="ni" onclick="show('how',this)"><span class="ni-icon">◎</span> How it works</div>
+    <div class="ni" onclick="show('ideas',this)"><span class="ni-icon">◻</span> Idea bank <span class="ni-badge" id="sb-count">—</span></div>
+    <div class="ni" onclick="show('themes',this)"><span class="ni-icon">◈</span> Key signals</div>
+    <div class="ni" onclick="show('add',this)"><span class="ni-icon">+</span> Add idea</div>
+  </nav>
+  <div class="sb-foot" id="sb-foot">Owner: Sophia De Lurgio<br>Launched: April 2026<br>Open for contributions</div>
+</aside>
+
+<main class="main">
+
+  <!-- OVERVIEW -->
+  <div class="view active" id="view-cover">
+    <div id="setup-warn"></div>
+    <div class="hero">
+      <div class="hero-eye">L&D · FRONT-END INNOVATION · LIVING DOCUMENT</div>
+      <h2><strong>L&D FEI</strong> Idea Incubator</h2>
+      <p>A shared pipeline of early-stage opportunities across the L&D portfolio. Seeded from consumer research, trend data, and brand strategy. Open to all collaborators — add your ideas in the "Add idea" tab.</p>
+      <div class="chips"><span class="chip">L&D Brand</span><span class="chip">Industrial Design</span><span class="chip">FEI Pods</span><span class="chip">R&D</span><span class="chip">Marketing</span></div>
+    </div>
+    <div class="stat-grid" id="stat-grid">
+      <div class="sc"><div class="n">—</div><div class="l">Total ideas</div></div>
+      <div class="sc"><div class="n">—</div><div class="l">Active</div></div>
+      <div class="sc"><div class="n">—</div><div class="l">High desirability</div></div>
+      <div class="sc"><div class="n">—</div><div class="l">Advanced to IGM</div></div>
+    </div>
+    <div class="meta-line"><span>Owner: Sophia De Lurgio</span><span>Launched: April 2026</span><span id="sync-status">Loading ideas...</span></div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="view" id="view-how">
+    <div class="ph"><h2>How it works</h2><p>A living space to capture early signals, let ideas breathe, and surface the strongest ones into the formal FEI pipeline. Everyone contributes; the FEI team synthesizes.</p></div>
+    <div class="step-grid">
+      <div class="scard"><div class="snum">1</div><h3>Submit</h3><p>Anyone — L&D Brand, Industrial Design, FEI pods — can add an idea using the "Add idea" tab. No polish required. A rough consumer signal, a retail observation, or a trend you can't stop thinking about all qualify.</p></div>
+      <div class="scard"><div class="snum">2</div><h3>Incubate</h3><p>Ideas sit in the bank until the next cross-functional review. Others can react and add context. Nothing gets deleted — only archived when a formal decision is made.</p></div>
+      <div class="scard"><div class="snum">3</div><h3>Synthesize</h3><p>The FEI team reviews top ideas with L&D Brand and flags candidates for deeper exploration or Create/Synthesize sessions. DFV signals help the group prioritize quickly without lengthy debate.</p></div>
+      <div class="scard"><div class="snum">4</div><h3>Advance or stop</h3><p>High-potential ideas are developed into FEI opportunity briefs and socialized with brand teams. Others are archived with rationale documented for future reference.</p></div>
+    </div>
+    <div class="goal-box">
+      <h4>2026 goal targets</h4>
+      <ul>
+        <li>Facilitate 2+ Create/Synthesize sessions with FEI pods; ≥25% O&R and Household FEI members</li>
+        <li>Maintain ≥10 top ideas in this living document</li>
+        <li>Socialize ≥1 FEI-originated opportunity brief with L&D brand teams</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- IDEA BANK -->
+  <div class="view" id="view-ideas">
+    <div class="ph"><h2>Idea bank</h2><p>Ideas with Desirability, Feasibility, and Viability signals. Click any idea to expand the full assessment. Filter by brand or DFV signal strength.</p></div>
+    <div class="filter-bar" id="brand-filters">
+      <span class="fl">Brand</span>
+      <button class="fb on" onclick="filterBrand('all',this)">All</button>
+      <button class="fb" onclick="filterBrand('Elmer\'s',this)">Elmer's</button>
+      <button class="fb" onclick="filterBrand('Sharpie',this)">Sharpie</button>
+      <button class="fb" onclick="filterBrand('EXPO',this)">EXPO</button>
+      <button class="fb" onclick="filterBrand('Paper Mate',this)">Paper Mate</button>
+      <button class="fb" onclick="filterBrand('Dymo',this)">Dymo</button>
+      <button class="fb" onclick="filterBrand('Parker',this)">Parker</button>
+      <button class="fb" onclick="filterBrand('NUK',this)">NUK</button>
+      <button class="fb" onclick="filterBrand('Graco',this)">Graco</button>
+      <button class="fb" onclick="filterBrand('Cross-brand',this)">Cross-brand</button>
+    </div>
+    <div class="filter-bar" id="dfv-filters">
+      <span class="fl">Signal</span>
+      <button class="fb on" onclick="filterDFV('all',this)">All signals</button>
+      <button class="fb" onclick="filterDFV('high-d',this)">High desirability</button>
+      <button class="fb" onclick="filterDFV('high-f',this)">High feasibility</button>
+      <button class="fb" onclick="filterDFV('high-v',this)">High viability</button>
+    </div>
+    <div id="idea-list"><div class="loading-overlay"><div class="load-spin"></div>Loading ideas from SharePoint...</div></div>
+  </div>
+
+  <!-- KEY SIGNALS -->
+  <div class="view" id="view-themes">
+    <div class="ph"><h2>Key signals</h2><p>Consumer research patterns, retail observations, and cultural trends informing idea generation across the L&D portfolio.</p></div>
+    <div class="theme-grid" id="theme-grid"></div>
+  </div>
+
+  <!-- ADD IDEA -->
+  <div class="view" id="view-add">
+    <div class="ph"><h2>Add an idea</h2><p>No polish required. A consumer signal, a store observation, something you saw on social — all welcome. Your idea is saved to SharePoint and visible to everyone immediately.</p></div>
+    <div id="add-banner"></div>
+    <div class="form-wrap">
+      <div class="fc">
+        <div class="field"><label>Idea name / one-liner</label><input type="text" id="f-title" placeholder="e.g. Elmer's shower slime — sensory wash mechanic for kids"></div>
+        <div class="field-row">
+          <div class="field"><label>Brand</label>
+            <select id="f-cat"><option value="">Select brand...</option><option>Elmer's</option><option>Sharpie</option><option>Paper Mate</option><option>EXPO</option><option>Dymo</option><option>NUK</option><option>Graco</option><option>Parker</option><option>Cross-brand</option><option>Other</option></select>
+          </div>
+          <div class="field"><label>Your name</label><input type="text" id="f-name" placeholder="Name or initials"></div>
+        </div>
+        <div class="field"><label>Opportunity / insight</label><textarea id="f-signal" placeholder="What consumer need, trend, or brand gap does this address? What's the insight behind it?"></textarea></div>
+        <div class="field"><label>Trend or evidence</label><input type="text" id="f-trend" placeholder="e.g. Sensory play CAGR, TikTok #organization, Gen Alpha creator identity..."></div>
+        <div class="dfv-sub-head">DFV quick rating</div>
+        <div class="dfv-form-row">
+          <div class="dfv-field des"><label>Desirability</label><select id="f-d"><option value="Low">Low — weak signal</option><option value="Medium">Medium — probable</option><option value="High" selected>High — strong pull</option></select></div>
+          <div class="dfv-field fea"><label>Feasibility</label><select id="f-f"><option value="Low">Low — major gaps</option><option value="Medium" selected>Medium — solvable</option><option value="High">High — in capability</option></select></div>
+          <div class="dfv-field via"><label>Viability</label><select id="f-v"><option value="Low">Low — unclear case</option><option value="Medium" selected>Medium — needs validation</option><option value="High">High — clear path</option></select></div>
+        </div>
+        <div class="field"><label>DFV notes (optional)</label><textarea id="f-dfv-notes" placeholder="What makes you confident or uncertain about any of the three ratings?"></textarea></div>
+        <button class="submit-btn" id="submit-btn" onclick="submitIdea()">
+          <span id="btn-text">Add to incubator →</span>
+          <div class="spinner" id="btn-spin"></div>
+        </button>
+        <div class="toast" id="toast"></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────
+// CONFIGURATION — update this before deploying
+// ─────────────────────────────────────────────────────────────────
+const SITE_URL  = "https://newellco.sharepoint.com/teams/FEIPOD";
+const LIST_NAME = "FEI_Ideas"; // ← confirm this matches your list's exact name in SharePoint
+
+// ─────────────────────────────────────────────────────────────────
+// SEED IDEAS — shown when SharePoint list is empty or unavailable
+// Remove or leave as fallback; once SP is wired these are ignored
+// ─────────────────────────────────────────────────────────────────
+const SEED_IDEAS = [
+  {
+    id:"seed-1", Title:"Elmer's shower slime — sensory wash mechanic for kids",
+    Brand:"Elmer's",
+    Signal:"Elmer's slime is one of the brand's highest-velocity platforms and a perennial top holiday item. Shower slime extends that equity into a personal care occasion: apply colored, scented slime in the shower, watch it dissolve and wash off clean. This collapses the gap between Elmer's craft identity and the kids personal care aisle — two spaces parents already shop together. The non-toxic, washable formula is the credibility unlock parents need, and it's already on the label. Positions Elmer's in a higher-margin, repeat-purchase category without losing brand coherence.",
+    TrendTag:"Elmer's slime platform + sensory play resurgence + personal care adjacency",
+    Desirability:"High", Feasibility:"High", Viability:"High",
+    DFVNotes:"D: Kids actively seek sensory play. Elmer's slime has demonstrated mass demand. Shower adds novelty and repeat use parents can say yes to. F: Washable, skin-safe formulas already exist — no new chemistry. Primary workstream is scent, packaging, shelf placement. V: Personal care margins exceed craft. Repeat purchase cadence. Strong retail story for Target/Walmart bath aisles.",
+    Submitter:"SDL", IdeaStatus:"Active"
+  },
+  {
+    id:"seed-2", Title:"Sharpie Gen Alpha creator kit — journaling, zine-making, and sticker tools",
+    Brand:"Sharpie",
+    Signal:"Gen Alpha is the first algorithmically native generation and self-identifies as 'creators' at an unusually early age. 77% of millennial parents report their children are more influential on household purchases than they were on their own parents. Journaling and zine culture are the fastest-growing residential stationery segment at 8.2% CAGR. Sharpie's bold ink and color range are already the tool of choice — this formalizes a curated creator starter kit with Sharpie as the anchor. Parent purchase is justified by creative/educational framing; kid desire is driven by creator identity. Strong gifting occasion for BTS and holiday.",
+    TrendTag:"Gen Alpha creator identity + journaling boom (8.2% CAGR) + millennial gifting",
+    Desirability:"High", Feasibility:"Medium", Viability:"High",
+    DFVNotes:"D: Gen Alpha identifies as creators. Journaling is the fastest-growing residential stationery segment. Millennial parents over-index on purchases that signal creative value. F: Sharpie has all components. Workstream is curation, kit packaging, and a creative brief that resonates with Gen Alpha vs. generic BTS. V: Kits deliver higher margin than individual markers. Strong gift-occasion play. Clear adjacency to Elmer's and Paper Mate for bundled assortment.",
+    Submitter:"SDL", IdeaStatus:"Active"
+  },
+  {
+    id:"seed-3", Title:"EXPO home whiteboard 'homework hub' system",
+    Brand:"EXPO",
+    Signal:"Remote and hybrid work permanently expanded whiteboard culture into the American home. 82% of millennial parents report sharing more interests with their kids than their own parents did — a collaborative parenting posture that creates joint homework and project moments. EXPO is the dominant whiteboard brand, but its marketing and SKU lineup is almost entirely positioned at office and classroom. A curated home homework hub — board sized for bedroom or kitchen wall, colorful markers beyond the default four, magnetic organizer strip — targets the repeat purchase occasion EXPO is leaving on the table in a category it already owns.",
+    TrendTag:"Home office permanence + millennial co-parenting + EXPO brand equity unlocked at home",
+    Desirability:"High", Feasibility:"High", Viability:"Medium",
+    DFVNotes:"D: Millennial parents already buying EXPO for home use without targeted positioning. This is a pull market that exists organically. F: EXPO already makes the product. This is a packaging, SKU configuration, and go-to-market exercise — not NPD. Low technical risk. V: Strong repeat purchase on markers. Board is one-time but creates ecosystem. Margin upside if positioned as premium home vs. commodity office refill.",
+    Submitter:"SDL", IdeaStatus:"Active"
+  }
+];
+
+const THEMES = [
+  {color:"#0D8C8C",cat:"Consumer trend",title:"Analog revival + premium stationery",body:"65% of consumers in developed economies now purchase premium stationery for personal use, citing mindfulness and aesthetics (NielsenIQ). Millennials and Gen Z are driving a tactile escape from screens — erasable pens, premium inks, fountain pens. Fastest-growing residential segment at 8.5% CAGR. Relevant to Paper Mate, Parker, Sharpie."},
+  {color:"#1B2D5B",cat:"Generation signal",title:"Gen Alpha creator identity",body:"77% of millennial parents say their kids are more influential on household purchases than they were on their own parents. Gen Alpha identifies as creators. YouTube dominates their attention — 2 in 3 will watch it in 2026 (EMARKETER). They expect brands to give them tools, not just products. Relevant to Sharpie, EXPO, Elmer's."},
+  {color:"#EF9F27",cat:"Cultural trend",title:"Organization as self-expression",body:"#organization has 50B+ views on TikTok. Label-makers, color-coded pantries, and aesthetic desk setups are a consumer trend — not just utility. Dymo's visual identity skews utilitarian/office while the growth opportunity is in the home aesthetic market. A design-forward label tape line is largely uncontested."},
+  {color:"#1D9E75",cat:"Category trend",title:"STEM craft + subscription model",body:"KiwiCo (STEM subscription kits) is valued at $400M+. Monthly maker kits are a proven recurring revenue model. Elmer's has trusted non-toxic credentials and craft platform equity to compete here with a subscription layer on existing products."},
+  {color:"#378ADD",cat:"Parenting trend",title:"Millennial 'do it together' parenting",body:"82% of millennial parents share more interests with their kids than their parents did with them (Horizon Media). Collaborative, not restrictive parenting creates joint purchase occasions. Graco, NUK, and Elmer's can lean into 'doing it together' emotional positioning vs. pure functional claims."},
+  {color:"#A32D2D",cat:"Market signal",title:"The home is now a permanent channel",body:"Remote/hybrid work permanently expanded whiteboard and stationery culture into the home. EXPO is the #1 whiteboard brand but underpenetrated in the home context. The homework hub and home command center are real, high-frequency purchase occasions that EXPO's current marketing does not own."},
+];
+
+// ─────────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────────
+let allIdeas = [];
+let activeBrand = 'all', activeDFV = 'all';
+let spConnected = false;
+let digestValue = null;
+
+// ─────────────────────────────────────────────────────────────────
+// SHAREPOINT API
+// ─────────────────────────────────────────────────────────────────
+const SP = {
+  headers: {
+    "Accept": "application/json;odata=nometadata",
+    "Content-Type": "application/json;odata=nometadata"
+  },
+
+  async getDigest() {
+    try {
+      const r = await fetch(`${SITE_URL}/_api/contextinfo`, {
+        method: "POST",
+        headers: { "Accept": "application/json;odata=nometadata" },
+        credentials: "include"
+      });
+      if (!r.ok) return null;
+      const d = await r.json();
+      return d.FormDigestValue;
+    } catch { return null; }
+  },
+
+  async getItems() {
+    const url = `${SITE_URL}/_api/web/lists/getbytitle('${LIST_NAME}')/items?$orderby=Created desc&$top=500`;
+    const r = await fetch(url, { headers: SP.headers, credentials: "include" });
+    if (!r.ok) throw new Error(`SP fetch failed: ${r.status}`);
+    const d = await r.json();
+    return d.value;
+  },
+
+  async addItem(item) {
+    if (!digestValue) digestValue = await SP.getDigest();
+    if (!digestValue) throw new Error("Could not get SharePoint form digest. Are you signed in?");
+    const url = `${SITE_URL}/_api/web/lists/getbytitle('${LIST_NAME}')/items`;
+    const r = await fetch(url, {
+      method: "POST",
+      headers: { ...SP.headers, "X-RequestDigest": digestValue },
+      credentials: "include",
+      body: JSON.stringify(item)
+    });
+    if (!r.ok) {
+      const err = await r.text();
+      throw new Error(`SP write failed (${r.status}): ${err.substring(0, 200)}`);
+    }
+    return await r.json();
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────────
+async function init() {
+  renderThemes();
+  checkSetup();
+  await loadIdeas();
+}
+
+function checkSetup() {
+  if (false) {
+    document.getElementById("setup-warn").innerHTML = `
+      <div class="setup-box">
+        <h3>⚙️ Setup required — connect to SharePoint</h3>
+        <ol>
+          <li>Create a Microsoft List on your SharePoint site named <code>FEI_Ideas</code></li>
+          <li>Add these columns: <code>Brand</code>, <code>Signal</code>, <code>TrendTag</code>, <code>Desirability</code>, <code>Feasibility</code>, <code>Viability</code>, <code>DFVNotes</code>, <code>Submitter</code>, <code>IdeaStatus</code></li>
+          <li>In this HTML file, replace <code>YOUR-SITE-NAME</code> in the <code>SITE_URL</code> constant with your actual SharePoint site path</li>
+          <li>Upload this file to SharePoint Site Assets and embed it as a page web part</li>
+        </ol>
+        <p style="margin-top:10px;font-size:12px;color:var(--muted)">Until connected, the tool shows seed ideas in preview mode. Submissions will be saved locally for this session only.</p>
+      </div>`;
+    document.getElementById("add-banner").innerHTML = `
+      <div class="sp-banner warn"><div class="sp-icon">⚠</div><div><strong>Preview mode.</strong> SharePoint is not yet connected. Ideas added now are session-only. Follow the setup steps on the Overview tab to enable persistent storage.</div></div>`;
+  }
+}
+
+async function loadIdeas() {
+  if (false) {
+    allIdeas = SEED_IDEAS.map(normalizeItem);
+    spConnected = false;
+    updateSyncStatus("Preview mode — seed ideas only");
+    renderIdeas();
+    renderStats();
+    return;
+  }
+  try {
+    const items = await SP.getItems();
+    if (items.length === 0) {
+      // Seed the list on first load
+      allIdeas = SEED_IDEAS.map(normalizeItem);
+      spConnected = true;
+      updateSyncStatus("Connected · " + allIdeas.length + " ideas");
+    } else {
+      allIdeas = items.map(normalizeItem);
+      spConnected = true;
+      updateSyncStatus("Connected · Last synced " + new Date().toLocaleTimeString());
+    }
+    document.getElementById("add-banner").innerHTML = `
+      <div class="sp-banner ok"><div class="sp-icon">✓</div><div><strong>Connected to SharePoint.</strong> Ideas you add are saved to the ${LIST_NAME} list and visible to everyone immediately.</div></div>`;
+  } catch(e) {
+    console.error("SP load error:", e);
+    allIdeas = SEED_IDEAS.map(normalizeItem);
+    spConnected = false;
+    updateSyncStatus("Offline — showing seed ideas");
+    document.getElementById("add-banner").innerHTML = `
+      <div class="sp-banner err"><div class="sp-icon">✕</div><div><strong>Could not connect to SharePoint.</strong> ${e.message}. Showing seed ideas. Check your site URL and that you have access to the ${LIST_NAME} list.</div></div>`;
+  }
+  renderIdeas();
+  renderStats();
+}
+
+function normalizeItem(item) {
+  return {
+    id: item.id || item.ID || ("seed-" + Math.random()),
+    title: item.Title || item.title || "",
+    brand: item.Brand || item.brand || "Other",
+    signal: item.Signal || item.signal || "",
+    trend: item.TrendTag || item.trend || "",
+    status: (item.IdeaStatus || item.status || "Active").toLowerCase().replace(/ /g,"-").replace("advanced-to-igm","igm").replace("on-hold","hold").replace("active","active"),
+    owner: item.Submitter || item.owner || "—",
+    d: item.Desirability || "Medium",
+    f: item.Feasibility || "Medium",
+    v: item.Viability || "Medium",
+    dfv_notes: item.DFVNotes || item.dfv_notes || ""
+  };
+}
+
+function updateSyncStatus(msg) {
+  const el = document.getElementById("sync-status");
+  if (el) el.textContent = msg;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────────────────────────────
+const SL = {Low:1, Medium:2, High:3};
+const SN = {Low:"Low", Medium:"Medium", High:"High"};
+
+function dots(score, cls) {
+  const n = SL[score] || 2;
+  return [1,2,3].map(i => `<div class="sdot${i<=n?' '+cls:''}"></div>`).join('');
+}
+
+function renderIdeas() {
+  const list = document.getElementById('idea-list');
+  let filtered = allIdeas;
+  if (activeBrand !== 'all') filtered = filtered.filter(i => i.brand === activeBrand);
+  if (activeDFV === 'high-d') filtered = filtered.filter(i => i.d === 'High');
+  if (activeDFV === 'high-f') filtered = filtered.filter(i => i.f === 'High');
+  if (activeDFV === 'high-v') filtered = filtered.filter(i => i.v === 'High');
+  if (!filtered.length) { list.innerHTML = '<div class="empty">No ideas match this filter. Be the first to add one!</div>'; return; }
+  const stMap = {active:{cls:'active',lbl:'Active'},hold:{cls:'hold',lbl:'On hold'},igm:{cls:'igm',lbl:'→ IGM'}};
+  list.innerHTML = filtered.map(idea => {
+    const st = stMap[idea.status] || stMap.active;
+    const safeId = String(idea.id).replace(/[^a-z0-9]/gi,'-');
+    return `<div class="idea-card">
+      <div class="ic-head" onclick="toggle('${safeId}')">
+        <div>
+          <div class="ic-title">${esc(idea.title)}</div>
+          <div class="ic-meta">
+            <span class="brand-tag">${esc(idea.brand)}</span>
+            ${idea.trend ? `<span class="trend-tag">↗ ${esc(idea.trend)}</span>` : ''}
+          </div>
+        </div>
+        <div class="ic-right">
+          <div class="status-badge"><div class="dot ${st.cls}"></div>${st.lbl}</div>
+          <button class="exp-btn" id="eb-${safeId}">DFV signals ▾</button>
+        </div>
+      </div>
+      <div class="ic-body" id="body-${safeId}">
+        <div class="signal-text">${esc(idea.signal)}</div>
+        ${idea.owner !== '—' ? `<div class="submitter-line">Added by ${esc(idea.owner)}</div>` : ''}
+        <div class="dfv-row">
+          <div class="dfv-card des"><div class="dfv-lbl">Desirability</div>
+            <div class="dfv-score"><div class="sdots">${dots(idea.d,'d')}</div><span class="dfv-slbl">${idea.d}</span></div>
+            <div class="dfv-note">${getDFVNote(idea.dfv_notes,'D:') || 'Rated by submitter.'}</div></div>
+          <div class="dfv-card fea"><div class="dfv-lbl">Feasibility</div>
+            <div class="dfv-score"><div class="sdots">${dots(idea.f,'f')}</div><span class="dfv-slbl">${idea.f}</span></div>
+            <div class="dfv-note">${getDFVNote(idea.dfv_notes,'F:') || 'Rated by submitter.'}</div></div>
+          <div class="dfv-card via"><div class="dfv-lbl">Viability</div>
+            <div class="dfv-score"><div class="sdots">${dots(idea.v,'v')}</div><span class="dfv-slbl">${idea.v}</span></div>
+            <div class="dfv-note">${getDFVNote(idea.dfv_notes,'V:') || 'Rated by submitter.'}</div></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('sb-count').textContent = allIdeas.length;
+}
+
+function getDFVNote(notes, prefix) {
+  if (!notes) return '';
+  const idx = notes.indexOf(prefix);
+  if (idx === -1) return notes;
+  const rest = notes.slice(idx + prefix.length).trim();
+  const nextLetter = rest.search(/\b[FVD]:/);
+  return nextLetter === -1 ? rest : rest.slice(0, nextLetter).trim();
+}
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toggle(id) {
+  const b = document.getElementById('body-'+id), btn = document.getElementById('eb-'+id);
+  if (!b || !btn) return;
+  const o = b.classList.toggle('open');
+  btn.textContent = o ? 'DFV signals ▴' : 'DFV signals ▾';
+}
+
+function filterBrand(v, btn) {
+  activeBrand = v;
+  document.querySelectorAll('#brand-filters .fb').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on'); renderIdeas();
+}
+
+function filterDFV(v, btn) {
+  activeDFV = v;
+  document.querySelectorAll('#dfv-filters .fb').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on'); renderIdeas();
+}
+
+function renderStats() {
+  const active = allIdeas.filter(i => i.status === 'active').length;
+  const igm = allIdeas.filter(i => i.status === 'igm').length;
+  const highD = allIdeas.filter(i => i.d === 'High').length;
+  document.getElementById('stat-grid').innerHTML = [
+    {n:allIdeas.length, l:'Total ideas'},
+    {n:active, l:'Active'},
+    {n:highD, l:'High desirability'},
+    {n:igm, l:'Advanced to IGM'}
+  ].map(s=>`<div class="sc"><div class="n">${s.n}</div><div class="l">${s.l}</div></div>`).join('');
+}
+
+function renderThemes() {
+  document.getElementById('theme-grid').innerHTML = THEMES.map(t=>`
+    <div class="tcard" style="border-left-color:${t.color}">
+      <div class="tcat">${t.cat}</div><h3>${t.title}</h3><p>${t.body}</p>
+    </div>`).join('');
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SUBMIT
+// ─────────────────────────────────────────────────────────────────
+async function submitIdea() {
+  const title = document.getElementById('f-title').value.trim();
+  const cat   = document.getElementById('f-cat').value;
+  if (!title || !cat) { showToast("Please add at least a title and brand.", true); return; }
+
+  const payload = {
+    Title:        title,
+    Brand:        cat,
+    Signal:       document.getElementById('f-signal').value.trim(),
+    TrendTag:     document.getElementById('f-trend').value.trim(),
+    Desirability: document.getElementById('f-d').value,
+    Feasibility:  document.getElementById('f-f').value,
+    Viability:    document.getElementById('f-v').value,
+    DFVNotes:     document.getElementById('f-dfv-notes').value.trim(),
+    Submitter:    document.getElementById('f-name').value.trim() || 'Anonymous',
+    IdeaStatus:   "Active"
+  };
+
+  setSubmitting(true);
+
+  if (!spConnected || false) {
+    // Fallback: add to local session only
+    allIdeas.unshift(normalizeItem({...payload, id: Date.now()}));
+    clearForm();
+    setSubmitting(false);
+    showToast("Added locally (preview mode — SharePoint not connected).");
+    renderIdeas(); renderStats();
+    return;
+  }
+
+  try {
+    const saved = await SP.addItem(payload);
+    allIdeas.unshift(normalizeItem(saved));
+    clearForm();
+    showToast("Added to SharePoint. Everyone can see it now.");
+    renderIdeas(); renderStats();
+    updateSyncStatus("Connected · " + allIdeas.length + " ideas");
+  } catch(e) {
+    console.error("Submit error:", e);
+    // Save locally as fallback
+    allIdeas.unshift(normalizeItem({...payload, id: Date.now()}));
+    renderIdeas(); renderStats();
+    showToast("SharePoint write failed — saved locally for this session. Error: " + e.message, true);
+  } finally {
+    setSubmitting(false);
+  }
+}
+
+function setSubmitting(v) {
+  const btn = document.getElementById('submit-btn');
+  const txt = document.getElementById('btn-text');
+  const spin = document.getElementById('btn-spin');
+  btn.disabled = v;
+  txt.textContent = v ? 'Saving...' : 'Add to incubator →';
+  spin.style.display = v ? 'block' : 'none';
+}
+
+function clearForm() {
+  ['f-title','f-signal','f-trend','f-name','f-dfv-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-cat').value = '';
+}
+
+function showToast(msg, err=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (err ? ' err' : '');
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 5000);
+}
+
+function show(tab, el) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
+  document.getElementById('view-' + tab).classList.add('active');
+  if (el) el.classList.add('active');
+}
+
+// ─────────────────────────────────────────────────────────────────
+// START
+// ─────────────────────────────────────────────────────────────────
+init();
+
+// Auto-refresh every 60s so direct SharePoint List edits appear without manual reload
+setInterval(async () => {
+  if (!spConnected) return;
+  try {
+    const items = await SP.getItems();
+    allIdeas = items.map(normalizeItem);
+    renderIdeas(); renderStats();
+    updateSyncStatus('Connected · Last synced ' + new Date().toLocaleTimeString());
+  } catch(e) { console.warn('Auto-refresh failed:', e.message); }
+}, 60000);
+</script>
+
+</body>
+</html>
